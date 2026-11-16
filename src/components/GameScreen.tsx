@@ -207,10 +207,10 @@ export const GameScreen: React.FC<GameScreenProps> = ({
         </div>
       </div>
 
-      {/* Mascot Avatar Placed at Centre-Left of Screen */}
+      {/* Mascot Avatar: Bottom-Left on Mobile, Centre-Left on Desktop */}
       <div
         data-testid="gameplay-mascot"
-        className="absolute left-1 sm:left-3 md:left-6 top-1/2 -translate-y-1/2 z-30 pointer-events-auto transform hover:scale-105 transition-transform"
+        className="absolute left-3 sm:left-4 md:left-6 bottom-3 sm:bottom-4 md:bottom-auto md:top-1/2 md:-translate-y-1/2 z-30 pointer-events-auto transform hover:scale-105 transition-transform"
       >
         <div className="relative flex flex-col items-center">
           {/* Reactive Speech Bubble */}
@@ -220,7 +220,7 @@ export const GameScreen: React.FC<GameScreenProps> = ({
               <div className="absolute -bottom-1 left-4 w-2 h-2 bg-white border-r-2 border-b-2 border-amber-300 transform rotate-45" />
             </div>
           )}
-          <div className="w-18 h-18 sm:w-24 sm:h-24 md:w-28 md:h-28 drop-shadow-xl">
+          <div className="w-20 h-20 sm:w-24 sm:h-24 md:w-28 md:h-28 drop-shadow-xl">
             <Mascot state={mascotState} />
           </div>
         </div>
