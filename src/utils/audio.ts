@@ -96,6 +96,11 @@ class SoundManager {
     osc.stop(t + 0.1);
   }
 
+  // Punchy balloon pop / blast for gameplay & interactive home balloons
+  public playBalloonPop() {
+    this.playPop();
+  }
+
   // Gentle rubber wobble / deflate error sound
   public playDeflate() {
     if (!this.isSoundEnabled) return;

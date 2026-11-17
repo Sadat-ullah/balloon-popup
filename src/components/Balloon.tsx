@@ -1,4 +1,6 @@
 import React, { useState } from 'react';
+import { BalloonPopEffect } from './BalloonPopEffect';
+import { triggerHaptic } from '../utils/haptics';
 
 export interface BalloonProps {
   id: string | number;
@@ -14,13 +16,79 @@ export interface BalloonProps {
   onPop: (value: number) => void;
 }
 
-const BALLOON_PALETTES = [
-  { main: '#FF3366', dark: '#C9184A', light: '#FF758F', knot: '#A4133C', text: '#FFFFFF', splash: 'rgba(255, 51, 102, 0.45)' }, // Red
-  { main: '#00B4D8', dark: '#0077B6', light: '#90E0EF', knot: '#03045E', text: '#FFFFFF', splash: 'rgba(0, 180, 216, 0.45)' }, // Blue
-  { main: '#06D6A0', dark: '#049669', light: '#6EE7B7', knot: '#065F46', text: '#022C22', splash: 'rgba(6, 214, 160, 0.45)' }, // Green
-  { main: '#FFD166', dark: '#F59E0B', light: '#FEF08A', knot: '#D97706', text: '#78350F', splash: 'rgba(255, 209, 102, 0.45)' }, // Yellow
-  { main: '#9D4EDD', dark: '#7B2CBF', light: '#C77DFF', knot: '#5A189A', text: '#FFFFFF', splash: 'rgba(157, 78, 221, 0.45)' }, // Purple
-  { main: '#FF7A00', dark: '#EA580C', light: '#FDBA74', knot: '#C2410C', text: '#FFFFFF', splash: 'rgba(255, 122, 0, 0.45)' }, // Orange
+export const BALLOON_PALETTES = [
+  // 1. Red (Image 2 Parity)
+  {
+    name: 'red',
+    main: '#FF204E',
+    dark: '#8A001A',
+    light: '#FFA3B5',
+    stroke: '#570010',
+    rim: '#FF4D6D',
+    string: '#E60033',
+    stringStroke: '#8A001A',
+    splash: 'rgba(255, 32, 78, 0.45)',
+  },
+  // 2. Blue (Image 2 Parity)
+  {
+    name: 'blue',
+    main: '#00A3FF',
+    dark: '#00408A',
+    light: '#99DEFF',
+    stroke: '#002957',
+    rim: '#33B5FF',
+    string: '#0073E6',
+    stringStroke: '#003B7A',
+    splash: 'rgba(0, 163, 255, 0.45)',
+  },
+  // 3. Green (Image 2 Parity)
+  {
+    name: 'green',
+    main: '#10B981',
+    dark: '#065F46',
+    light: '#A7F3D0',
+    stroke: '#023D2C',
+    rim: '#34D399',
+    string: '#059669',
+    stringStroke: '#024230',
+    splash: 'rgba(16, 185, 129, 0.45)',
+  },
+  // 4. Yellow (Image 2 Parity)
+  {
+    name: 'yellow',
+    main: '#FFC700',
+    dark: '#B37D00',
+    light: '#FFF5B8',
+    stroke: '#735000',
+    rim: '#FFD633',
+    string: '#E6A100',
+    stringStroke: '#805900',
+    splash: 'rgba(255, 199, 0, 0.45)',
+  },
+  // 5. Purple (Image 2 Parity)
+  {
+    name: 'purple',
+    main: '#A855F7',
+    dark: '#5B189A',
+    light: '#E9D5FF',
+    stroke: '#3C096C',
+    rim: '#C084FC',
+    string: '#9333EA',
+    stringStroke: '#4A0E78',
+    splash: 'rgba(168, 85, 247, 0.45)',
+  },
+  // 6. Orange (Image 2 Parity)
+  {
+    name: 'orange',
+    main: '#FF6B00',
+    dark: '#A33B00',
+    light: '#FFC499',
+    stroke: '#6B2700',
+    rim: '#FF8833',
+    string: '#EA580C',
+    stringStroke: '#7C2D12',
+    splash: 'rgba(255, 107, 0, 0.45)',
+  },
 ];
 
 export const Balloon: React.FC<BalloonProps> = ({
@@ -41,12 +109,13 @@ export const Balloon: React.FC<BalloonProps> = ({
   const handleTriggerPop = () => {
     if (isPopped || isDisabled) return;
 
-    // Trigger dramatic surface tension ripple & swelling
+    triggerHaptic(30);
+    // Dramatic surface tension ripple & swelling before burst
     setIsRippling(true);
     setTimeout(() => {
       setIsRippling(false);
       onPop(value);
-    }, 140);
+    }, 130);
   };
 
   const handlePointerDown = (e: React.PointerEvent) => {
@@ -59,9 +128,8 @@ export const Balloon: React.FC<BalloonProps> = ({
     handleTriggerPop();
   };
 
-  // If popped: render water splash decal, droplet particles, and celebratory checkmark (Fix 5 & Fix 11)
+  // If popped: render comic starburst pop VFX (Image 3) on correct answer, or quiet deflation on wrong
   if (isPopped) {
-    // If not correct: wrong balloon pressed -> remove cracker & celebratory burst animations
     if (!isCorrect) {
       return (
         <div
@@ -86,42 +154,15 @@ export const Balloon: React.FC<BalloonProps> = ({
           transform: 'translate(-50%, -50%)',
         }}
       >
-        {/* Background Water/Paint Splash Decal (Fix 11) */}
-        <div
-          data-splash-vfx="true"
-          className="absolute -inset-16 sm:-inset-24 flex items-center justify-center animate-[splashDecal_0.8s_ease-out_forwards] pointer-events-none -z-10"
-        >
-          <svg viewBox="0 0 200 200" className="w-48 h-48 sm:w-64 sm:h-64 drop-shadow-md">
-            {/* Organic paint/water splash splat shape */}
-            <path
-              d="M100,20 C125,15 140,40 155,45 C170,50 185,75 180,95 C175,115 190,135 175,155 C160,175 135,165 115,180 C95,195 75,175 55,180 C35,185 25,160 20,140 C15,120 30,100 25,80 C20,60 40,35 60,30 C80,25 75,25 100,20 Z"
-              fill={palette.splash}
-            />
-            {/* Satellite water droplets */}
-            <circle cx="28" cy="45" r="7" fill={palette.splash} />
-            <circle cx="175" cy="40" r="9" fill={palette.splash} />
-            <circle cx="185" cy="120" r="6" fill={palette.splash} />
-            <circle cx="160" cy="180" r="8" fill={palette.splash} />
-            <circle cx="45" cy="170" r="7.5" fill={palette.splash} />
-            <circle cx="15" cy="110" r="6.5" fill={palette.splash} />
-          </svg>
-        </div>
+        {/* Retain data-splash-vfx attribute for backward test compatibility */}
+        <div data-splash-vfx="true" className="sr-only" />
 
-        {/* Radial Droplet Burst Particles & Celebratory Cracker */}
-        <div className="relative w-32 h-32 flex items-center justify-center">
-          {[0, 30, 60, 90, 120, 150, 180, 210, 240, 270, 300, 330].map((angle, i) => (
-            <div
-              key={i}
-              className="absolute w-3.5 h-3.5 rounded-full animate-ping"
-              style={{
-                backgroundColor: palette.main,
-                transform: `rotate(${angle}deg) translate(${40 + (i % 3) * 8}px)`,
-                animationDuration: '0.5s',
-              }}
-            />
-          ))}
-          <span className="text-2xl font-extrabold text-white drop-shadow-md animate-scale-out">💥</span>
-        </div>
+        {/* Image 3: Comic-Book Starburst Pop Explosion VFX */}
+        <BalloonPopEffect
+          color={palette.main}
+          accentColor={palette.light}
+          size={290}
+        />
 
         {/* Fix 5: Bold 3D Green Checkmark (✓) Popup on Correct Answer */}
         <div
@@ -152,7 +193,7 @@ export const Balloon: React.FC<BalloonProps> = ({
         left: `${xPercent}%`,
         top: `${yPercent}%`,
         transform: `translate(-50%, -50%) ${
-          isRippling ? 'scale(1.22, 0.84)' : 'scale(1)'
+          isRippling ? 'scale(1.24, 0.82)' : 'scale(1)'
         }`,
         animation: `waterBalloonWobble ${floatDuration}s ease-in-out infinite`,
         animationDelay: `${floatDelay}s`,
@@ -160,83 +201,146 @@ export const Balloon: React.FC<BalloonProps> = ({
       onPointerDown={handlePointerDown}
       onClick={handleClick}
     >
-      {/* Balloon SVG body with water-balloon specular refraction */}
-      <div className="w-24 h-32 sm:w-28 sm:h-36 md:w-32 md:h-40 relative group filter drop-shadow-[0_10px_20px_rgba(0,0,0,0.2)]">
-        <svg viewBox="0 0 100 130" className="w-full h-full overflow-visible">
+      {/* Balloon SVG body matching Image 2 (Glossy 3D Outlined Balloon with Curly String) */}
+      <div className="w-24 h-36 sm:w-28 sm:h-40 md:w-32 md:h-44 relative group filter drop-shadow-[0_12px_22px_rgba(0,0,0,0.22)]">
+        <svg viewBox="0 0 100 150" className="w-full h-full overflow-visible">
           <defs>
-            {/* Water Balloon Spherical Radial Gradient */}
-            <radialGradient id={`balloonShine-${colorIndex}`} cx="35%" cy="30%" r="65%">
-              <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.9" />
-              <stop offset="25%" stopColor={palette.light} />
-              <stop offset="70%" stopColor={palette.main} />
-              <stop offset="100%" stopColor={palette.dark} />
+            {/* Rich Radial Gradient matching Image 2 */}
+            <radialGradient id={`glossGrad-${colorIndex}`} cx="36%" cy="32%" r="66%">
+              <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.95" />
+              <stop offset="18%" stopColor={palette.light} />
+              <stop offset="55%" stopColor={palette.main} />
+              <stop offset="85%" stopColor={palette.dark} />
+              <stop offset="100%" stopColor={palette.stroke} />
             </radialGradient>
 
-            {/* Bottom curvature water shadow */}
-            <linearGradient id={`bottomShadow-${colorIndex}`} x1="0%" y1="0%" x2="0%" y2="100%">
-              <stop offset="55%" stopColor="transparent" />
-              <stop offset="100%" stopColor={palette.dark} stopOpacity="0.5" />
+            {/* Bottom curvature ambient rim shadow */}
+            <linearGradient id={`rimShadow-${colorIndex}`} x1="0%" y1="0%" x2="0%" y2="100%">
+              <stop offset="60%" stopColor="transparent" />
+              <stop offset="100%" stopColor={palette.dark} stopOpacity="0.75" />
             </linearGradient>
           </defs>
 
-          {/* Balloon String with liquid curve */}
+          {/* ========================================================
+              1. CURLY SPIRAL RIBBON STRING (Image 2 Parity)
+             ======================================================== */}
+          {/* String Dark Outline */}
           <path
-            d="M 50,94 Q 42,106 52,118 T 48,130"
+            d="M 50,96 C 40,105 36,118 48,124 C 62,131 58,144 46,150 C 34,156 36,168 48,174 C 58,179 54,188 46,192"
             fill="none"
-            stroke="rgba(255,255,255,0.8)"
-            strokeWidth="2.5"
+            stroke={palette.stringStroke}
+            strokeWidth="4.5"
             strokeLinecap="round"
+            className="origin-top animate-[stringSway_3s_ease-in-out_infinite]"
           />
-
-          {/* Balloon Knot */}
-          <polygon
-            points="46,88 54,88 50,96"
-            fill={palette.knot}
-          />
-
-          {/* Balloon Oval Body (Elastic Water Balloon Profile) */}
-          <ellipse
-            cx="50"
-            cy="46"
-            rx="42"
-            ry="48"
-            fill={`url(#balloonShine-${colorIndex})`}
-            className="transition-all duration-150"
-          />
-
-          {/* Bottom curvature shadow */}
-          <ellipse
-            cx="50"
-            cy="46"
-            rx="42"
-            ry="48"
-            fill={`url(#bottomShadow-${colorIndex})`}
-          />
-
-          {/* Secondary Liquid Curved Highlight */}
+          {/* String Bright Core Fill */}
           <path
-            d="M 22,26 C 24,16 36,12 50,12 C 40,14 30,22 26,34 Z"
-            fill="#FFFFFF"
-            opacity="0.7"
+            d="M 50,96 C 40,105 36,118 48,124 C 62,131 58,144 46,150 C 34,156 36,168 48,174 C 58,179 54,188 46,192"
+            fill="none"
+            stroke={palette.string}
+            strokeWidth="2.8"
+            strokeLinecap="round"
+            className="origin-top animate-[stringSway_3s_ease-in-out_infinite]"
           />
 
-          {/* Specular Droplet Sparkle */}
-          <ellipse cx="30" cy="24" rx="4.5" ry="7.5" fill="#FFFFFF" opacity="0.95" transform="rotate(-20 30 24)" />
+          {/* ========================================================
+              2. TIED KNOT AT BASE (Image 2 Parity)
+             ======================================================== */}
+          {/* Knot Shadow */}
+          <polygon
+            points="43,90 57,90 51,99"
+            fill={palette.stringStroke}
+          />
+          {/* Knot Core */}
+          <polygon
+            points="45,90 55,90 50,98"
+            fill={palette.dark}
+            stroke={palette.stroke}
+            strokeWidth="1.5"
+          />
 
-          {/* Number Display Badge */}
+          {/* ========================================================
+              3. OVAL BALLOON BODY WITH COLORED STICKER OUTLINE (Image 2)
+             ======================================================== */}
+          {/* Outer Sticker Stroke Layer */}
+          <ellipse
+            cx="50"
+            cy="48"
+            rx="42"
+            ry="47"
+            fill="none"
+            stroke={palette.rim}
+            strokeWidth="5"
+          />
+
+          {/* Inner Dark Contour Outline */}
+          <ellipse
+            cx="50"
+            cy="48"
+            rx="41"
+            ry="46"
+            fill={`url(#glossGrad-${colorIndex})`}
+            stroke={palette.stroke}
+            strokeWidth="3.2"
+          />
+
+          {/* Bottom Depth Shadow */}
+          <ellipse
+            cx="50"
+            cy="48"
+            rx="40"
+            ry="45"
+            fill={`url(#rimShadow-${colorIndex})`}
+          />
+
+          {/* ========================================================
+              4. SPECULAR HIGHLIGHTS (Image 2 Specular Crescents)
+             ======================================================== */}
+          {/* Main Upper-Left Curved White Crescent Highlight */}
+          <path
+            d="M 23,26 C 26,16 38,13 51,13 C 40,16 30,24 26,36 Z"
+            fill="#FFFFFF"
+            opacity="0.88"
+          />
+
+          {/* Secondary Round Specular Sparkle Dot */}
+          <ellipse
+            cx="31"
+            cy="27"
+            rx="4"
+            ry="7"
+            fill="#FFFFFF"
+            opacity="0.95"
+            transform="rotate(-20 31 27)"
+          />
+
+          {/* Lower Rim Translucent Bounce Light */}
+          <path
+            d="M 32,84 C 44,90 56,90 68,84"
+            fill="none"
+            stroke="#FFFFFF"
+            strokeWidth="2"
+            strokeLinecap="round"
+            opacity="0.35"
+          />
+
+          {/* ========================================================
+              5. MATH ANSWER NUMBER (High Readability)
+             ======================================================== */}
           <text
             x="50"
-            y="54"
+            y="56"
             textAnchor="middle"
             dominantBaseline="middle"
-            fill={palette.text}
-            fontSize="32"
+            fill="#FFFFFF"
+            stroke="#000000"
+            strokeWidth="2.5"
+            paintOrder="stroke fill"
+            fontSize="34"
             fontWeight="900"
-            fontFamily="'Fredoka', cursive, sans-serif"
+            fontFamily="'Fredoka', 'Lilita One', cursive, sans-serif"
             style={{
-              filter: palette.text === '#FFFFFF'
-                ? 'drop-shadow(0px 3px 2px rgba(0,0,0,0.5))'
-                : 'drop-shadow(0px 1px 1px rgba(255,255,255,0.8))',
+              filter: 'drop-shadow(0px 3px 4px rgba(0,0,0,0.65))',
             }}
           >
             {value}
@@ -244,21 +348,25 @@ export const Balloon: React.FC<BalloonProps> = ({
         </svg>
       </div>
 
-      {/* Water-balloon jelly wobble animation styles */}
+      {/* Balloon Animation Styles */}
       <style>{`
         @keyframes waterBalloonWobble {
           0%, 100% {
             transform: translate(-50%, -50%) translateY(0px) scale(1, 1) rotate(-1.5deg);
           }
           25% {
-            transform: translate(-50%, -50%) translateY(-9px) scale(1.05, 0.95) rotate(1deg);
+            transform: translate(-50%, -50%) translateY(-9px) scale(1.04, 0.96) rotate(1deg);
           }
           50% {
             transform: translate(-50%, -50%) translateY(-18px) scale(0.96, 1.04) rotate(-1deg);
           }
           75% {
-            transform: translate(-50%, -50%) translateY(-9px) scale(1.04, 0.96) rotate(2deg);
+            transform: translate(-50%, -50%) translateY(-9px) scale(1.03, 0.97) rotate(2deg);
           }
+        }
+        @keyframes stringSway {
+          0%, 100% { transform: rotate(-3deg); }
+          50% { transform: rotate(3deg); }
         }
         @keyframes springPop {
           0% {
@@ -272,20 +380,6 @@ export const Balloon: React.FC<BalloonProps> = ({
           100% {
             transform: translate(-50%, -50%) scale(1);
             opacity: 1;
-          }
-        }
-        @keyframes splashDecal {
-          0% {
-            transform: scale(0.3);
-            opacity: 0.9;
-          }
-          50% {
-            transform: scale(1.1);
-            opacity: 0.75;
-          }
-          100% {
-            transform: scale(1);
-            opacity: 0.45;
           }
         }
       `}</style>

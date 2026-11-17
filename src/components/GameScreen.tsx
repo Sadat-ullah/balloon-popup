@@ -6,6 +6,7 @@ import { ExplanationModal } from './ExplanationModal';
 import { CelebrationModal } from './CelebrationModal';
 import { LevelData } from '../data/levels';
 import { sounds } from '../utils/audio';
+import { triggerHaptic } from '../utils/haptics';
 import { ArrowLeft, Volume2, VolumeX, RotateCcw } from 'lucide-react';
 
 interface GameScreenProps {
@@ -97,7 +98,8 @@ export const GameScreen: React.FC<GameScreenProps> = ({
 
     if (val === levelData.answer) {
       // CORRECT ANSWER!
-      sounds.playPop();
+      sounds.playBalloonPop();
+      triggerHaptic(40);
       setPoppedValues((prev) => [...prev, val]);
       setMascotState('happy');
       setSpeechBubble('🎉 Awesome job!');
