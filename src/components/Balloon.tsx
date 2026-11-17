@@ -109,22 +109,24 @@ export const Balloon: React.FC<BalloonProps> = ({
   const handleTriggerPop = () => {
     if (isPopped || isDisabled) return;
 
-    triggerHaptic(30);
-    // Dramatic surface tension ripple & swelling before burst
-    setIsRippling(true);
+    // Instant zero-delay pop response (< 16ms)
+    onPop(value);
+    
+    // Non-blocking haptic feedback
     setTimeout(() => {
-      setIsRippling(false);
-      onPop(value);
-    }, 130);
+      triggerHaptic(30);
+    }, 0);
   };
 
   const handlePointerDown = (e: React.PointerEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     handleTriggerPop();
   };
 
   const handleClick = (e: React.MouseEvent) => {
     e.preventDefault();
+    e.stopPropagation();
     handleTriggerPop();
   };
 

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useMemo, useCallback } from 'react';
 import bgSkyHome from '../assets/balloon-blast/bg_sky_home.jpg';
 import { BalloonPopEffect } from './BalloonPopEffect';
 import { sounds } from '../utils/audio';
@@ -8,56 +8,51 @@ interface HomeSkyBackgroundProps {
   showAmbientBalloons?: boolean;
 }
 
-interface ActivePop {
-  id: number;
-  xPercent: number;
-  yPixels: number;
-  color: string;
-  size: number;
-}
-
 const AMBIENT_PALETTES = [
-  { main: '#FF204E', dark: '#8A001A', rim: '#FF4D6D', string: '#E60033' }, // Red
-  { main: '#00A3FF', dark: '#00408A', rim: '#33B5FF', string: '#0073E6' }, // Blue
-  { main: '#10B981', dark: '#065F46', rim: '#34D399', string: '#059669' }, // Green
-  { main: '#FFC700', dark: '#B37D00', rim: '#FFD633', string: '#E6A100' }, // Yellow
-  { main: '#A855F7', dark: '#5B189A', rim: '#C084FC', string: '#9333EA' }, // Purple
-  { main: '#FF6B00', dark: '#A33B00', rim: '#FF8833', string: '#EA580C' }, // Orange
+  { main: '#FF204E', dark: '#8A001A', light: '#FFA3B5', rim: '#FF4D6D', string: '#E60033' }, // Red
+  { main: '#00A3FF', dark: '#00408A', light: '#99DEFF', rim: '#33B5FF', string: '#0073E6' }, // Blue
+  { main: '#10B981', dark: '#065F46', light: '#A7F3D0', rim: '#34D399', string: '#059669' }, // Green
+  { main: '#FFC700', dark: '#B37D00', light: '#FFF5B8', rim: '#FFD633', string: '#E6A100' }, // Yellow
+  { main: '#A855F7', dark: '#5B189A', light: '#E9D5FF', rim: '#C084FC', string: '#9333EA' }, // Purple
+  { main: '#FF6B00', dark: '#A33B00', light: '#FFC499', rim: '#FF8833', string: '#EA580C' }, // Orange
 ];
 
 export const HomeSkyBackground: React.FC<HomeSkyBackgroundProps> = ({ showAmbientBalloons = true }) => {
   const containerRef = useRef<HTMLDivElement>(null);
   const balloonElementsRef = useRef<(HTMLDivElement | null)[]>([]);
-  const [activePops, setActivePops] = useState<ActivePop[]>([]);
 
-  // Static balloon definitions
-  const balloonData = useMemo(() => {
+  // 7 Ambient Balloons configuration
+  const balloonDefs = useMemo(() => {
     return Array.from({ length: 7 }).map((_, i) => {
       const pal = AMBIENT_PALETTES[i % AMBIENT_PALETTES.length];
       return {
         id: i,
-        initialLeft: 7 + i * 14 + (i % 2) * 3,
-        size: 56 + (i % 3) * 10,
+        initialLeft: 6 + i * 14 + (i % 2) * 3, // Percentage 6% to 92%
+        size: 58 + (i % 3) * 8, // Width in px
         color: pal.main,
         darkColor: pal.dark,
+        lightColor: pal.light,
         rimColor: pal.rim,
         stringColor: pal.string,
-        speed: 1.1 + (i % 3) * 0.25, // Pixels per frame
+        speed: 1.15 + (i % 3) * 0.25, // Pixels per frame
       };
     });
   }, []);
 
-  // Mutable animation state running strictly outside React's render loop for 60 FPS
+  // Track popped state for each balloon (true = showing 3D pop effect at current position)
+  const [poppedMap, setPoppedMap] = useState<Record<number, boolean>>({});
+
+  // Mutable physics data for 60 FPS requestAnimationFrame loop (zero setState in frame loop)
   const physicsRef = useRef(
-    balloonData.map((b, i) => ({
+    balloonDefs.map((b, i) => ({
       id: b.id,
       xPercent: b.initialLeft,
-      currentY: (i * 120) % 650,
+      currentY: (i * 115) % 650,
       isPopping: false,
     }))
   );
 
-  // Sparkle stars
+  // Sparkle stars & background bokeh
   const sparkles = useMemo(() => {
     return Array.from({ length: 16 }).map((_, i) => ({
       id: i,
@@ -69,7 +64,6 @@ export const HomeSkyBackground: React.FC<HomeSkyBackgroundProps> = ({ showAmbien
     }));
   }, []);
 
-  // Bokeh floating light orbs
   const bokehOrbs = useMemo(() => {
     return Array.from({ length: 8 }).map((_, i) => ({
       id: i,
@@ -81,7 +75,7 @@ export const HomeSkyBackground: React.FC<HomeSkyBackgroundProps> = ({ showAmbien
     }));
   }, []);
 
-  // 60 FPS GPU-Accelerated requestAnimationFrame Movement Loop (Zero React setState in loop)
+  // 60 FPS Composited Animation Frame Loop
   useEffect(() => {
     if (!showAmbientBalloons) return;
 
@@ -92,19 +86,22 @@ export const HomeSkyBackground: React.FC<HomeSkyBackgroundProps> = ({ showAmbien
 
       physicsRef.current.forEach((item, index) => {
         const el = balloonElementsRef.current[index];
-        if (!el || item.isPopping) return;
+        if (!el) return;
 
-        item.currentY += balloonData[index].speed;
+        // If not popping, advance position upwards
+        if (!item.isPopping) {
+          item.currentY += balloonDefs[index].speed;
 
-        // Reached top -> cycle cleanly back below bottom
-        if (item.currentY > h + 140) {
-          item.currentY = -120;
-          item.xPercent = (item.xPercent + 29) % 86 + 7;
-          el.style.left = `${item.xPercent}%`;
+          // Reached top -> cycle cleanly back to bottom
+          if (item.currentY > h + 150) {
+            item.currentY = -120;
+            item.xPercent = (item.xPercent + 29) % 86 + 7;
+            el.style.left = `${item.xPercent}%`;
+          }
+
+          // GPU-accelerated translate3d on the exact interactive balloon wrapper
+          el.style.transform = `translate3d(0, -${item.currentY}px, 0)`;
         }
-
-        // Apply hardware-accelerated transform: translate3d
-        el.style.transform = `translate3d(0, -${item.currentY}px, 0)`;
       });
 
       animId = requestAnimationFrame(tick);
@@ -112,56 +109,45 @@ export const HomeSkyBackground: React.FC<HomeSkyBackgroundProps> = ({ showAmbien
 
     animId = requestAnimationFrame(tick);
     return () => cancelAnimationFrame(animId);
-  }, [showAmbientBalloons, balloonData]);
+  }, [showAmbientBalloons, balloonDefs]);
 
-  // Instant Zero-Delay Tap-to-Pop Handler
-  const handlePopBalloon = (index: number) => {
-    const item = physicsRef.current[index];
-    const bDef = balloonData[index];
-    if (!item || item.isPopping) return;
+  // Instant Zero-Latency Tap-to-Pop Handler
+  const handleInstantPop = useCallback(
+    (index: number) => {
+      const item = physicsRef.current[index];
+      if (!item || item.isPopping) return;
 
-    // 1. Instant audio + haptic feedback
-    sounds.playBalloonPop();
-    triggerHaptic(35);
+      // 1. Immediately freeze movement at exact current coordinates
+      item.isPopping = true;
 
-    // 2. Mark popping & hide balloon body immediately
-    item.isPopping = true;
-    const el = balloonElementsRef.current[index];
-    if (el) {
-      el.style.opacity = '0';
-      el.style.pointerEvents = 'none';
-    }
+      // 2. Synchronous visual state change: mount 3D Pop Effect at exact balloon center
+      setPoppedMap((prev) => ({ ...prev, [index]: true }));
 
-    // 3. Mount 3D Balloon Pop VFX at exact coordinates
-    const popId = Date.now() + index;
-    setActivePops((prev) => [
-      ...prev,
-      {
-        id: popId,
-        xPercent: item.xPercent,
-        yPixels: item.currentY,
-        color: bDef.color,
-        size: bDef.size * 2.8,
-      },
-    ]);
+      // 3. Audio & Haptics non-blockingly right after
+      setTimeout(() => {
+        sounds.playBalloonPop();
+        triggerHaptic(35);
+      }, 0);
 
-    // 4. Remove pop effect and smoothly recycle balloon from bottom
-    setTimeout(() => {
-      setActivePops((prev) => prev.filter((p) => p.id !== popId));
-      item.currentY = -120;
-      item.xPercent = (item.xPercent + 23) % 86 + 7;
-      item.isPopping = false;
-      if (el) {
-        el.style.left = `${item.xPercent}%`;
-        el.style.opacity = '1';
-        el.style.pointerEvents = 'auto';
-      }
-    }, 580);
-  };
+      // 4. Recycle balloon smoothly from bottom after pop effect finishes (~520ms)
+      setTimeout(() => {
+        const el = balloonElementsRef.current[index];
+        item.currentY = -120;
+        item.xPercent = (item.xPercent + 23) % 86 + 7;
+        item.isPopping = false;
+        if (el) {
+          el.style.left = `${item.xPercent}%`;
+          el.style.transform = `translate3d(0, 120px, 0)`;
+        }
+        setPoppedMap((prev) => ({ ...prev, [index]: false }));
+      }, 520);
+    },
+    []
+  );
 
   return (
     <div ref={containerRef} className="absolute inset-0 overflow-hidden select-none z-0">
-      {/* 1. High-Resolution Rich Sky Art Base */}
+      {/* 1. High-Resolution Rich Sky Art Base (pointer-events-none) */}
       <div
         className="absolute inset-0 bg-cover bg-center transition-transform duration-1000 scale-105 pointer-events-none"
         style={{
@@ -169,7 +155,7 @@ export const HomeSkyBackground: React.FC<HomeSkyBackgroundProps> = ({ showAmbien
         }}
       />
 
-      {/* 2. Shimmering Sun Rays / God Rays Animation */}
+      {/* 2. Shimmering Sun Rays / God Rays Animation (pointer-events-none) */}
       <div className="absolute inset-0 opacity-40 mix-blend-screen pointer-events-none">
         <div
           className="absolute -top-32 -right-32 w-[140vw] h-[140vh] origin-top-right animate-[sunrayRotate_24s_linear_infinite]"
@@ -181,7 +167,7 @@ export const HomeSkyBackground: React.FC<HomeSkyBackgroundProps> = ({ showAmbien
         <div className="absolute inset-0 bg-gradient-to-b from-sky-400/20 via-transparent to-amber-200/30 animate-[rayPulse_6s_ease-in-out_infinite]" />
       </div>
 
-      {/* 3. Drifting Fluffy Cloud Bands */}
+      {/* 3. Drifting Fluffy Cloud Bands (pointer-events-none) */}
       <div className="absolute inset-0 opacity-85 pointer-events-none">
         <div className="absolute top-10 left-0 w-[200vw] h-40 flex items-center animate-[cloudDrift_48s_linear_infinite]">
           <div className="w-1/2 flex justify-around">
@@ -195,7 +181,7 @@ export const HomeSkyBackground: React.FC<HomeSkyBackgroundProps> = ({ showAmbien
         </div>
       </div>
 
-      {/* 4. Magical Floating Bokeh Light Orbs */}
+      {/* 4. Magical Floating Bokeh Light Orbs (pointer-events-none) */}
       <div className="absolute inset-0 pointer-events-none">
         {bokehOrbs.map((orb) => (
           <div
@@ -213,7 +199,7 @@ export const HomeSkyBackground: React.FC<HomeSkyBackgroundProps> = ({ showAmbien
         ))}
       </div>
 
-      {/* 5. Twinkling Diamond Stars */}
+      {/* 5. Twinkling Diamond Stars (pointer-events-none) */}
       {sparkles.map((sp) => (
         <div
           key={sp.id}
@@ -233,83 +219,97 @@ export const HomeSkyBackground: React.FC<HomeSkyBackgroundProps> = ({ showAmbien
         </div>
       ))}
 
-      {/* 6. Active 3D Balloon Pop Explosions Overlay */}
-      {activePops.map((pop) => (
-        <div
-          key={pop.id}
-          data-ambient-burst={pop.id}
-          className="absolute pointer-events-none z-20"
-          style={{
-            left: `${pop.xPercent}%`,
-            bottom: `${pop.yPixels}px`,
-            transform: 'translate(-50%, 0)',
-          }}
-        >
-          <BalloonPopEffect color={pop.color} size={pop.size} />
-        </div>
-      ))}
-
-      {/* 7. Interactive 60 FPS Ambient Balloons (Instant Zero-Delay Tap-to-Pop) */}
+      {/* ========================================================
+          6. INTERACTIVE 60 FPS FLOATING BALLOONS (z-index: 10)
+          - Wrapped in a dedicated interaction layer (z-10)
+          - Pop VFX spawns directly inside each balloon's exact coordinates!
+         ======================================================== */}
       {showAmbientBalloons && (
         <div className="absolute inset-0 pointer-events-none z-10">
-          {balloonData.map((b, i) => (
-            <div
-              key={b.id}
-              ref={(el) => {
-                balloonElementsRef.current[i] = el;
-              }}
-              data-ambient-balloon={b.id}
-              className="absolute pointer-events-auto cursor-pointer touch-manipulation transform active:scale-90 hover:scale-105 transition-transform"
-              style={{
-                left: `${b.initialLeft}%`,
-                bottom: '0px',
-                width: `${b.size}px`,
-                height: `${b.size * 1.45}px`,
-                willChange: 'transform',
-                padding: '6px', // Expanded touch hitbox
-              }}
-              onPointerDown={(e) => {
-                e.preventDefault();
-                handlePopBalloon(i);
-              }}
-              onClick={(e) => {
-                e.preventDefault();
-                handlePopBalloon(i);
-              }}
-            >
-              {/* Glossy Outlined Balloon SVG with Curly String (Image 2 Parity) */}
-              <svg viewBox="0 0 100 140" className="w-full h-full overflow-visible drop-shadow-[0_8px_16px_rgba(0,0,0,0.22)]">
-                <defs>
-                  <radialGradient id={`ambientShine-${b.id}`} cx="35%" cy="32%" r="66%">
-                    <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.95" />
-                    <stop offset="25%" stopColor={b.rimColor} />
-                    <stop offset="60%" stopColor={b.color} />
-                    <stop offset="100%" stopColor={b.darkColor} />
-                  </radialGradient>
-                </defs>
+          {balloonDefs.map((b, i) => {
+            const isPopped = Boolean(poppedMap[i]);
 
-                {/* Curly String */}
-                <path
-                  d="M 50,96 C 42,104 38,114 48,120 C 58,126 56,134 46,140"
-                  fill="none"
-                  stroke={b.stringColor}
-                  strokeWidth="3.2"
-                  strokeLinecap="round"
-                />
+            return (
+              <div
+                key={b.id}
+                ref={(el) => {
+                  balloonElementsRef.current[i] = el;
+                }}
+                data-ambient-balloon={b.id}
+                className="absolute select-none will-change-transform cursor-pointer touch-none"
+                style={{
+                  left: `${b.initialLeft}%`,
+                  bottom: '0px',
+                  width: `${b.size}px`,
+                  height: `${b.size * 1.45}px`,
+                  pointerEvents: isPopped ? 'none' : 'auto',
+                  touchAction: 'none',
+                }}
+                onPointerDown={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  handleInstantPop(i);
+                }}
+              >
+                {isPopped ? (
+                  /* 3D Pop Burst rendered at exact center of the balloon */
+                  <div
+                    data-ambient-burst={b.id}
+                    className="absolute inset-0 flex items-center justify-center pointer-events-none"
+                    style={{ transform: 'translate(0, -10%)' }}
+                  >
+                    <BalloonPopEffect
+                      color={b.color}
+                      accentColor={b.lightColor}
+                      size={b.size * 2.8}
+                    />
+                  </div>
+                ) : (
+                  /* Floating Balloon Oval Hitbox & SVG */
+                  <div
+                    className="relative w-full h-full cursor-pointer touch-none active:scale-90 hover:scale-105 transition-transform"
+                    style={{ touchAction: 'none' }}
+                    onPointerDown={(e) => {
+                      e.preventDefault();
+                      e.stopPropagation();
+                      handleInstantPop(i);
+                    }}
+                  >
+                    <svg viewBox="0 0 100 140" className="w-full h-full overflow-visible drop-shadow-[0_8px_16px_rgba(0,0,0,0.22)]">
+                      <defs>
+                        <radialGradient id={`ambientShine-${b.id}`} cx="35%" cy="32%" r="66%">
+                          <stop offset="0%" stopColor="#FFFFFF" stopOpacity="0.95" />
+                          <stop offset="25%" stopColor={b.rimColor} />
+                          <stop offset="60%" stopColor={b.color} />
+                          <stop offset="100%" stopColor={b.darkColor} />
+                        </radialGradient>
+                      </defs>
 
-                {/* Knot */}
-                <polygon points="44,90 56,90 50,97" fill={b.darkColor} stroke={b.darkColor} strokeWidth="1" />
+                      {/* Curly String */}
+                      <path
+                        d="M 50,96 C 42,104 38,114 48,120 C 58,126 56,134 46,140"
+                        fill="none"
+                        stroke={b.stringColor}
+                        strokeWidth="3.2"
+                        strokeLinecap="round"
+                      />
 
-                {/* Balloon Body with Colored Rim & Inner Fill */}
-                <ellipse cx="50" cy="48" rx="42" ry="46" fill="none" stroke={b.rimColor} strokeWidth="4.8" />
-                <ellipse cx="50" cy="48" rx="41" ry="45" fill={`url(#ambientShine-${b.id})`} stroke={b.darkColor} strokeWidth="2.8" />
+                      {/* Knot */}
+                      <polygon points="44,90 56,90 50,97" fill={b.darkColor} stroke={b.darkColor} strokeWidth="1" />
 
-                {/* Specular Crescent Highlight */}
-                <path d="M 24,26 C 28,16 38,13 50,13 C 38,16 30,24 26,36 Z" fill="#FFFFFF" opacity="0.9" />
-                <ellipse cx="31" cy="27" rx="4" ry="6.5" fill="#FFFFFF" opacity="0.95" transform="rotate(-20 31 27)" />
-              </svg>
-            </div>
-          ))}
+                      {/* Balloon Body with Colored Rim & Inner Fill */}
+                      <ellipse cx="50" cy="48" rx="42" ry="46" fill="none" stroke={b.rimColor} strokeWidth="4.8" />
+                      <ellipse cx="50" cy="48" rx="41" ry="45" fill={`url(#ambientShine-${b.id})`} stroke={b.darkColor} strokeWidth="2.8" />
+
+                      {/* Specular Crescent Highlight */}
+                      <path d="M 24,26 C 28,16 38,13 50,13 C 38,16 30,24 26,36 Z" fill="#FFFFFF" opacity="0.9" />
+                      <ellipse cx="31" cy="27" rx="4" ry="6.5" fill="#FFFFFF" opacity="0.95" transform="rotate(-20 31 27)" />
+                    </svg>
+                  </div>
+                )}
+              </div>
+            );
+          })}
         </div>
       )}
 

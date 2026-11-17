@@ -16,11 +16,11 @@ export const BalloonPopEffect: React.FC<BalloonPopEffectProps> = ({
   return (
     <div
       data-testid="comic-starburst-pop"
-      className={`absolute pointer-events-none select-none z-30 flex items-center justify-center ${className}`}
+      data-balloon-pop-effect
+      className={`relative pointer-events-none select-none z-30 flex items-center justify-center flex-shrink-0 ${className}`}
       style={{
         width: `${size}px`,
         height: `${size}px`,
-        transform: 'translate(-50%, -50%)',
         perspective: '900px',
       }}
     >
