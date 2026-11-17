@@ -2,16 +2,18 @@ import React from 'react';
 
 interface BalloonBlastLogoProps {
   className?: string;
+  style?: React.CSSProperties;
 }
 
-export const BalloonBlastLogo: React.FC<BalloonBlastLogoProps> = ({ className = '' }) => {
+export const BalloonBlastLogo: React.FC<BalloonBlastLogoProps> = ({ className = '', style }) => {
   return (
     <div
       data-testid="balloon-blast-code-logo"
       className={`relative select-none flex items-center justify-center ${className}`}
       style={{
-        width: 'clamp(240px, 46vw, 480px)',
+        width: 'clamp(290px, 54vw, 560px)',
         aspectRatio: '620 / 310',
+        ...style,
       }}
     >
       <svg
