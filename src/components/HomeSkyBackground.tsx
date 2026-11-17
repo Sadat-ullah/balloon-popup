@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import bgSkyHome from '../assets/balloon-blast/bg_sky_home.jpg';
 
 interface HomeSkyBackgroundProps {
   showAmbientBalloons?: boolean;
@@ -114,7 +115,7 @@ export const HomeSkyBackground: React.FC<HomeSkyBackgroundProps> = ({ showAmbien
       <div
         className="absolute inset-0 bg-cover bg-center transition-transform duration-1000 scale-105"
         style={{
-          backgroundImage: 'url(/assets/balloon-blast/bg_sky_home.jpg)',
+          backgroundImage: `url(${bgSkyHome})`,
         }}
       />
 

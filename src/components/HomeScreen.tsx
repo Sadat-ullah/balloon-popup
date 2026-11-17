@@ -4,6 +4,7 @@ import { Mascot } from './Mascot';
 import { Play, Map, Settings, Star } from 'lucide-react';
 import { sounds } from '../utils/audio';
 import { SettingsModal } from './SettingsModal';
+import logoImg from '../assets/balloon-blast/logo_balloon_blast.png';
 
 interface HomeScreenProps {
   unlockedLevel: number;
@@ -71,33 +72,33 @@ export const HomeScreen: React.FC<HomeScreenProps> = ({
       </header>
 
       {/* Hero Section: Centered Logo & Mascot (Fix 7b & Fix 8) */}
-      <main className="relative z-20 flex flex-col items-center justify-center my-auto w-full max-w-lg text-center px-2">
+      <main className="relative z-20 flex flex-col items-center justify-center my-auto w-full max-w-lg text-center px-2 py-1">
         {/* Responsive Enlarged Logo (Fix 8) */}
         <div
-          style={{ width: 'clamp(260px, 58vw, 500px)' }}
-          className="max-w-full mb-1 transform hover:scale-105 transition-transform duration-300 filter drop-shadow-[0_12px_24px_rgba(0,0,0,0.25)] flex justify-center"
+          style={{ width: 'clamp(240px, 46vw, 440px)', aspectRatio: '1024 / 506' }}
+          className="max-w-full mb-1 transform hover:scale-105 transition-transform duration-300 filter drop-shadow-[0_12px_24px_rgba(0,0,0,0.25)] flex justify-center items-center"
         >
           <img
-            src="/assets/balloon-blast/logo_balloon_blast.png"
+            src={logoImg}
             alt="Balloon Blast"
-            className="w-full h-auto object-contain animate-bounce-slow"
+            className="w-full h-full object-contain animate-bounce-slow"
           />
         </div>
 
         {/* Subtitle Badge (Clear vertical spacing to prevent overlap) */}
-        <div className="inline-block bg-white/95 backdrop-blur-sm px-5 py-1.5 rounded-full shadow-md border-2 border-amber-300 mb-8">
+        <div className="inline-block bg-white/95 backdrop-blur-sm px-4 py-1 sm:px-5 sm:py-1.5 rounded-full shadow-md border-2 border-amber-300 mb-2 sm:mb-3">
           <span className="text-xs md:text-sm font-black tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-pink-600 via-amber-600 to-sky-600 uppercase font-game">
             Kids Sky Arcade Math • 100 Levels
           </span>
         </div>
 
         {/* Mascot Center Stage with dedicated clearance for speech bubble (Fix 7b) */}
-        <div className="relative mt-4 mb-5 flex justify-center">
+        <div className="relative my-1.5 sm:my-2.5 flex justify-center">
           <Mascot state="idle" speechBubble="Ready to blast some balloons?" />
         </div>
 
         {/* Primary Action Buttons */}
-        <div className="w-full flex flex-col items-center gap-3.5 px-4 mt-2">
+        <div className="w-full flex flex-col items-center gap-2.5 sm:gap-3.5 px-4 mt-1 sm:mt-2">
           {/* Big Bouncy PLAY Button */}
           <button
             onClick={handleStartPlay}

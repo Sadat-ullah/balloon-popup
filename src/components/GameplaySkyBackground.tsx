@@ -1,4 +1,5 @@
 import React, { useMemo } from 'react';
+import bgSkyGameplay from '../assets/balloon-blast/bg_sky_gameplay.jpg';
 
 export const GameplaySkyBackground: React.FC = () => {
   // Floating magical sun-motes / firefly sparkles
@@ -19,7 +20,7 @@ export const GameplaySkyBackground: React.FC = () => {
       <div
         className="absolute inset-0 bg-cover bg-center transition-transform duration-700"
         style={{
-          backgroundImage: 'url(/assets/balloon-blast/bg_sky_gameplay.jpg)',
+          backgroundImage: `url(${bgSkyGameplay})`,
         }}
       />
 
